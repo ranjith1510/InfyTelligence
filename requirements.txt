@@ -1,0 +1,7 @@
+streamlit
+python-dotenv
+PyMuPDF
+supabase
+pandas
+Pillow
+requests
