@@ -37,7 +37,6 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     st.error("Missing Supabase credentials. Please check your .env file!")
     st.stop()
 
-# (Optionally, if the OpenRouter API key is missing, disable classifier functionality)
 if not OPENROUTER_API_KEY:
     st.warning("OPENROUTER_API_KEY is missing. The classifier functionality will be disabled.")
 
@@ -170,7 +169,6 @@ def classify_event_with_openrouter(text):
             "confidence_score": 0,
             "found_attributes": []
         }
-        # If confidence is too low, treat the classification as Unknown
         if result.get("confidence_score", 0) < 0.5:
             result["event_type"] = "Unknown"
             result["found_attributes"] = []
@@ -205,7 +203,6 @@ def extract_event_details(text, event_type, found_attributes):
         extracted_data = json.loads(response_text) if response_text else {}
     except json.JSONDecodeError:
         extracted_data = {}
-    # Return all attributes defined in the event type with either the extracted value or an empty string
     return {attr: extracted_data.get(attr, "") for attr in attributes.keys()}
 
 # -----------------------------------------------------------------------------
@@ -299,9 +296,9 @@ def event_manager_ui():
             event_to_view = next((event for event in events if event["id"] == selected_event_id), None)
             if event_to_view:
                 data_dict = event_to_view["data"]
-                st.write(f"### Event ID: {selected_event_id}")
+                # Only display the event attributes and prompts (event ID is not displayed)
                 df = pd.DataFrame(list(data_dict.items()), columns=["Attribute", "Prompt"])
-                st.data_editor(df, disabled=True, key="view_event")
+                st.dataframe(df.style.hide(axis="index"), use_container_width=True)
         else:
             st.warning("No events found!")
 
@@ -313,7 +310,12 @@ def event_manager_ui():
         if "new_data_df" not in st.session_state:
             st.session_state.new_data_df = pd.DataFrame(columns=["Attribute", "Prompt"])
         
-        new_data_df = st.data_editor(st.session_state.new_data_df, num_rows="dynamic", key="new_event")
+        new_data_df = st.data_editor(
+            st.session_state.new_data_df,
+            num_rows="dynamic",
+            key="new_event",
+            use_container_width=True
+        )
         if st.button("Add Event"):
             parsed_data = {row["Attribute"]: row["Prompt"] for _, row in new_data_df.iterrows() if row["Attribute"]}
             if new_event_id and parsed_data:
@@ -337,7 +339,12 @@ def event_manager_ui():
                 if "edit_data_df" not in st.session_state or st.session_state.get("edit_event_id") != edit_event_id:
                     st.session_state.edit_event_id = edit_event_id
                     st.session_state.edit_data_df = pd.DataFrame(list(data_dict.items()), columns=["Attribute", "Prompt"])
-                updated_data_df = st.data_editor(st.session_state.edit_data_df, num_rows="dynamic", key="edit_event")
+                updated_data_df = st.data_editor(
+                    st.session_state.edit_data_df,
+                    num_rows="dynamic",
+                    key="edit_event",
+                    use_container_width=True
+                )
                 if st.button("Update Event"):
                     updated_data = {row["Attribute"]: row["Prompt"] for _, row in updated_data_df.iterrows() if row["Attribute"]}
                     if updated_data:
@@ -361,8 +368,9 @@ def event_manager_ui():
 # MAIN NAVIGATION
 # -----------------------------------------------------------------------------
 def main():
-    st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Select a Page", ["Event Classifier & Extractor", "Event Manager"])
+    st.sidebar.title("InfyTelligence")
+    # Remove label text by passing an empty string to radio()
+    page = st.sidebar.radio("", ["Event Classifier & Extractor", "Event Manager"])
     if page == "Event Classifier & Extractor":
         classifier_ui()
     elif page == "Event Manager":
